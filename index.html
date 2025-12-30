@@ -14,13 +14,15 @@
     .card { background: white; padding: 20px; margin: 20px auto; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     #status { margin: 20px; font-size: 18px; }
     .hidden { display: none; }
+    input, select { margin: 5px; padding: 10px; width: 90%; }
+    label { display: block; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>🚗 CexPi</h1>
     <p>Used Cars, Trucks & Motorcycles Marketplace</p>
-    <p>All prices in Pi • Monthly subscription: 1 Pi</p>
+    <p>Free access • Pay 0.5 Pi per listing</p>
 
     <div id="login-section">
       <button id="login-btn" class="btn-primary">Login with Pi Network</button>
@@ -28,30 +30,66 @@
 
     <div id="app-section" class="hidden">
       <div id="status"></div>
-      <button id="subscribe-btn" class="btn-primary hidden">Pay 1 Pi Subscription</button>
-      <p id="subscribed-msg" class="hidden" style="color:green; font-weight:bold;">
-        ✓ You are subscribed! You can now add listings and view phone numbers.
-      </p>
-      <hr>
-      <p>Next features coming soon: Add listing, View listings by country...</p>
+      <button id="add-listing-btn" class="btn-primary">Add New Listing (Pay 0.5 Pi)</button>
+      <div id="listing-form" class="hidden">
+        <form>
+          <label>Title:</label>
+          <input type="text" id="title" required>
+
+          <label>Description:</label>
+          <input type="text" id="description" required>
+
+          <label>Price in Pi:</label>
+          <input type="number" id="priceInPi" required min="0">
+
+          <label>Category:</label>
+          <select id="category" required>
+            <option value="">Select</option>
+            <option value="car">Car</option>
+            <option value="truck">Truck</option>
+            <option value="motorcycle">Motorcycle</option>
+          </select>
+
+          <label>Make:</label>
+          <input type="text" id="make">
+
+          <label>Model:</label>
+          <input type="text" id="model">
+
+          <label>Year:</label>
+          <input type="number" id="year">
+
+          <label>Mileage:</label>
+          <input type="number" id="mileage">
+
+          <label>Region/City:</label>
+          <input type="text" id="region" required>
+
+          <label>Phone Number:</label>
+          <input type="text" id="phoneNumber" required>
+
+          <label>Images (up to 6):</label>
+          <input type="file" id="images" multiple accept="image/*">
+
+          <button type="button" id="submit-listing-btn" class="btn-primary">Submit Listing</button>
+        </form>
+      </div>
     </div>
   </div>
 
   <script>
-    const BACKEND_URL = 'http://localhost:3000'; // غيّر هذا لاحقًا إلى رابط Render عند النشر
+    const BACKEND_URL = 'http://localhost:3000';
 
-    Pi.init({ version: "2.0", sandbox: true }); // sandbox للتجربة، غيّر إلى false في Mainnet
+    Pi.init({ version: "2.0", sandbox: true });
 
     document.getElementById('login-btn').onclick = async () => {
       try {
         const scopes = ['username', 'payments'];
         const auth = await Pi.authenticate(scopes);
 
-        // اختيار الدولة (مؤقتًا نستخدم prompt، لاحقًا نضيف قائمة منسدلة)
         const country = prompt("Enter your country (e.g., Egypt, Saudi Arabia, UAE):");
         if (!country) return alert("Country is required");
 
-        // تسجيل المستخدم في الـ Backend
         const registerRes = await fetch(`${BACKEND_URL}/api/register-user`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -65,24 +103,13 @@
         const registerData = await registerRes.json();
         if (!registerData.success) throw new Error("Registration failed");
 
-        const user = registerData.user;
-
-        // إخفاء زر الدخول وعرض القسم الرئيسي
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
+        document.getElementById('status').innerHTML = `Hello ${auth.user.username}! You can browse free. Pay 0.5 Pi to add a listing.`;
 
-        if (user.isActiveSubscriber) {
-          document.getElementById('subscribed-msg').classList.remove('hidden');
-          document.getElementById('status').innerHTML = `Welcome back, ${user.piUsername}!`;
-        } else {
-          document.getElementById('subscribe-btn').classList.remove('hidden');
-          document.getElementById('status').innerHTML = `Hello ${user.piUsername}! You need to subscribe to use CexPi.`;
-        }
-
-        // زر الدفع
-        document.getElementById('subscribe-btn').onclick = async () => {
-          // إنشاء طلب دفع من الـ Backend
-          const payRes = await fetch(`${BACKEND_URL}/api/create-subscription-payment`, {
+        // زر إضافة إعلان يطلب دفع أولاً
+        document.getElementById('add-listing-btn').onclick = async () => {
+          const payRes = await fetch(`${BACKEND_URL}/api/create-listing-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ piUid: auth.user.uid })
@@ -90,29 +117,75 @@
           const payData = await payRes.json();
 
           const payment = {
-            amount: 1,
-            memo: payData.paymentData.memo,
-            metadata: payData.paymentData.metadata
+            amount: 0.5,
+            memo: payData.memo,
+            metadata: payData.metadata
           };
 
           const callbacks = {
             onReadyForServerApproval: async (paymentId) => {
-              // إكمال الدفع في الـ Backend (في sandbox نقبل أي دفع)
-              await fetch(`${BACKEND_URL}/api/complete-subscription`, {
+              await fetch(`${BACKEND_URL}/api/complete-listing-payment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ paymentId, piUid: auth.user.uid })
               });
             },
             onReadyForServerCompletion: (paymentId, txid) => {
-              alert("Subscription paid successfully! You are now active for 30 days.");
-              location.reload();
+              alert("Payment successful! Fill the listing form.");
+              document.getElementById('add-listing-btn').classList.add('hidden');
+              document.getElementById('listing-form').classList.remove('hidden');
             },
             onCancel: () => alert("Payment cancelled"),
             onError: (error) => alert("Payment error: " + error.message)
           };
 
           Pi.createPayment(payment, callbacks);
+        };
+
+        // إرسال النموذج بعد ملء المعلومات
+        document.getElementById('submit-listing-btn').onclick = async () => {
+          const title = document.getElementById('title').value;
+          const description = document.getElementById('description').value;
+          const priceInPi = document.getElementById('priceInPi').value;
+          const category = document.getElementById('category').value;
+          const make = document.getElementById('make').value;
+          const model = document.getElementById('model').value;
+          const year = document.getElementById('year').value;
+          const mileage = document.getElementById('mileage').value;
+          const region = document.getElementById('region').value;
+          const phoneNumber = document.getElementById('phoneNumber').value;
+          const imageFiles = document.getElementById('images').files;
+
+          if (!title || !description || !priceInPi || !category || !region || !phoneNumber) {
+            return alert("Please fill all required fields: title, description, price, category, region, phone number.");
+          }
+
+          if (imageFiles.length > 6) return alert("Max 6 images allowed.");
+
+          const images = [];
+          for (let file of imageFiles) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            await new Promise(resolve => reader.onload = resolve);
+            images.push(reader.result); // base64
+          }
+
+          const submitRes = await fetch(`${BACKEND_URL}/api/complete-listing`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              piUid: auth.user.uid,
+              title, description, priceInPi, category, make, model, year, mileage, region, images, phoneNumber
+            })
+          });
+
+          const submitData = await submitRes.json();
+          if (submitData.success) {
+            alert("Listing added and displayed in the correct category and country!");
+            location.reload();
+          } else {
+            alert("Error: " + submitData.error);
+          }
         };
 
       } catch (err) {
