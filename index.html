@@ -67,7 +67,7 @@
           <input type="number" id="mileage" min="0">
 
           <label>Region / City *</label>
-          <input type="text" id="region" placeholder="e.g., Algiers, Oran" required>
+          <input type="text" id="region" placeholder="e.g., Algiers, Oran, Constantine" required>
 
           <label>Phone Number *</label>
           <input type="tel" id="phoneNumber" required>
@@ -83,10 +83,10 @@
   </div>
 
   <script>
-    // غيّر هذا الرابط إلى رابط Render الخاص بك بعد النشر
-    const BACKEND_URL = 'http://localhost:3000'; // مثال مؤقت، غيّره لاحقًا إلى https://your-backend.onrender.com
+    // رابط الـ Backend الحقيقي أونلاين
+    const BACKEND_URL = 'https://cexpi-backend.onrender.com';
 
-    Pi.init({ version: "2.0", sandbox: true }); // sandbox: true للتجربة
+    Pi.init({ version: "2.0", sandbox: true }); // sandbox للتجربة، غيّر إلى false في Mainnet لاحقًا
 
     let currentUser = null;
 
@@ -217,7 +217,7 @@
 
       const data = await res.json();
       if (data.success) {
-        alert("Listing published successfully! It will appear in your country and category.");
+        alert("Listing published successfully! It is now visible in your country and category.");
         location.reload();
       } else {
         alert("Error: " + data.error);
