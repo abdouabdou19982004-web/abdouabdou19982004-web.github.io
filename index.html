@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CexPi - Used Vehicles Marketplace</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 40px; background: #f5f5f5; }
+    h1 { color: #6B4CE6; }
+    button { padding: 12px 24px; font-size: 16px; margin: 10px; cursor: pointer; border: none; border-radius: 8px; }
+    .btn-primary { background: #6B4CE6; color: white; }
+    .btn-primary:hover { background: #5a3fd6; }
+    .card { background: white; padding: 20px; margin: 20px auto; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    #status { margin: 20px; font-size: 18px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚗 CexPi</h1>
+    <p>Used Cars, Trucks & Motorcycles Marketplace</p>
+    <p>All prices in Pi • Monthly subscription: 1 Pi</p>
+
+    <div id="login-section">
+      <button id="login-btn" class="btn-primary">Login with Pi Network</button>
+    </div>
+
+    <div id="app-section" class="hidden">
+      <div id="status"></div>
+      <button id="subscribe-btn" class="btn-primary hidden">Pay 1 Pi Subscription</button>
+      <p id="subscribed-msg" class="hidden" style="color:green; font-weight:bold;">
+        ✓ You are subscribed! You can now add listings and view phone numbers.
+      </p>
+      <hr>
+      <p>Next features coming soon: Add listing, View listings by country...</p>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://localhost:3000'; // غيّر هذا لاحقًا إلى رابط Render عند النشر
+
+    Pi.init({ version: "2.0", sandbox: true }); // sandbox للتجربة، غيّر إلى false في Mainnet
+
+    document.getElementById('login-btn').onclick = async () => {
+      try {
+        const scopes = ['username', 'payments'];
+        const auth = await Pi.authenticate(scopes);
+
+        // اختيار الدولة (مؤقتًا نستخدم prompt، لاحقًا نضيف قائمة منسدلة)
+        const country = prompt("Enter your country (e.g., Egypt, Saudi Arabia, UAE):");
+        if (!country) return alert("Country is required");
+
+        // تسجيل المستخدم في الـ Backend
+        const registerRes = await fetch(`${BACKEND_URL}/api/register-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            piUid: auth.user.uid,
+            piUsername: auth.user.username,
+            country: country.trim()
+          })
+        });
+
+        const registerData = await registerRes.json();
+        if (!registerData.success) throw new Error("Registration failed");
+
+        const user = registerData.user;
+
+        // إخفاء زر الدخول وعرض القسم الرئيسي
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('app-section').classList.remove('hidden');
+
+        if (user.isActiveSubscriber) {
+          document.getElementById('subscribed-msg').classList.remove('hidden');
+          document.getElementById('status').innerHTML = `Welcome back, ${user.piUsername}!`;
+        } else {
+          document.getElementById('subscribe-btn').classList.remove('hidden');
+          document.getElementById('status').innerHTML = `Hello ${user.piUsername}! You need to subscribe to use CexPi.`;
+        }
+
+        // زر الدفع
+        document.getElementById('subscribe-btn').onclick = async () => {
+          // إنشاء طلب دفع من الـ Backend
+          const payRes = await fetch(`${BACKEND_URL}/api/create-subscription-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ piUid: auth.user.uid })
+          });
+          const payData = await payRes.json();
+
+          const payment = {
+            amount: 1,
+            memo: payData.paymentData.memo,
+            metadata: payData.paymentData.metadata
+          };
+
+          const callbacks = {
+            onReadyForServerApproval: async (paymentId) => {
+              // إكمال الدفع في الـ Backend (في sandbox نقبل أي دفع)
+              await fetch(`${BACKEND_URL}/api/complete-subscription`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, piUid: auth.user.uid })
+              });
+            },
+            onReadyForServerCompletion: (paymentId, txid) => {
+              alert("Subscription paid successfully! You are now active for 30 days.");
+              location.reload();
+            },
+            onCancel: () => alert("Payment cancelled"),
+            onError: (error) => alert("Payment error: " + error.message)
+          };
+
+          Pi.createPayment(payment, callbacks);
+        };
+
+      } catch (err) {
+        alert("Error: " + err.message);
+        console.error(err);
+      }
+    };
+  </script>
+</body>
+</html>
