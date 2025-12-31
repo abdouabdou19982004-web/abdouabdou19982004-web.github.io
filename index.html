@@ -190,7 +190,87 @@
       }
     };
 
-    document.getElementById('add-listing-btn').onclick = async () => {
+    document.getElementById('submit-listing-btn').onclick = async () => {
+  try {
+    // جمع البيانات من النموذج
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const priceInPi = parseFloat(document.getElementById('priceInPi').value);
+    const category = document.getElementById('category').value;
+    const make = document.getElementById('make').value.trim();
+    const model = document.getElementById('model').value.trim();
+    const year = document.getElementById('year').value ? parseInt(document.getElementById('year').value) : null;
+    const mileage = document.getElementById('mileage').value ? parseInt(document.getElementById('mileage').value) : null;
+    const country = document.getElementById('country').value;
+    const region = document.getElementById('region').value.trim();
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+    const imageFiles = document.getElementById('images').files;
+
+    // التحقق من الحقول الإلزامية
+    if (!title || !description || isNaN(priceInPi) || !category || !country || !region || !phoneNumber) {
+      alert("يرجى ملء جميع الحقول المطلوبة (*)");
+      return;
+    }
+
+    if (imageFiles.length > 6) {
+      alert("الحد الأقصى 6 صور فقط");
+      return;
+    }
+
+    // تحويل الصور إلى base64
+    const images = [];
+    for (let file of imageFiles) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      images.push(await new Promise(resolve => {
+        reader.onload = () => resolve(reader.result);
+      }));
+    }
+
+    // إرسال الإعلان إلى الـ Backend
+    const res = await fetch(`${BACKEND_URL}/api/complete-listing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        piUid: currentUser.uid,
+        title,
+        description,
+        priceInPi,
+        category,
+        make,
+        model,
+        year,
+        mileage,
+        country,  // مهم جدًا: إرسال الدولة
+        region,
+        images,
+        phoneNumber
+      })
+    });
+
+    // التحقق من الاستجابة
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "فشل في النشر، حاول مرة أخرى");
+    }
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert("تم نشر الإعلان بنجاح! 🎉");
+      // إخفاء النموذج وعودة زر إضافة إعلان جديد
+      document.getElementById('listing-form').classList.add('hidden');
+      document.getElementById('add-listing-btn').classList.remove('hidden');
+      // إعادة تحميل الإعلانات ليظهر الجديد فورًا
+      loadListings(country);
+    } else {
+      alert("خطأ: " + (data.error || "غير معروف"));
+    }
+  } catch (err) {
+    alert("خطأ في النشر: " + err.message);
+    console.error("Publish error:", err);
+  }
+};
       if (!currentUser) return alert("Please login first");
 
       const payRes = await fetch(`${BACKEND_URL}/api/create-listing-payment`, {
@@ -334,4 +414,5 @@
   </script>
 </body>
 </html>
+
 
