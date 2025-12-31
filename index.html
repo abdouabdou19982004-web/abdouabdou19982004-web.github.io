@@ -85,9 +85,11 @@
   <script>
     const BACKEND_URL = 'https://cexpi-backend.onrender.com';
 
+    // Mainnet - دفع حقيقي
     Pi.init({ version: "2.0", sandbox: false });
 
     let currentUser = null;
+    let currentPaymentId = null;
 
     document.getElementById('login-btn').onclick = async () => {
       try {
@@ -156,25 +158,28 @@
 
       const callbacks = {
         onReadyForServerApproval: async (paymentId) => {
+          currentPaymentId = paymentId;
           const approveRes = await fetch(`${BACKEND_URL}/api/approve-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentId })
           });
-          if (!approveRes.ok) alert("Approval failed");
+          if (!approveRes.ok) console.error("Approval failed");
         },
         onReadyForServerCompletion: async (paymentId, txid) => {
-          const completeRes = await fetch(`${BACKEND_URL}/api/complete-listing`, {
+          const completeRes = await fetch(`${BACKEND_URL}/api/complete-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentId, txid, piUid: currentUser.uid })
           });
-          if (completeRes.ok) {
-            alert("Payment completed successfully! Now fill in your listing details.");
+
+          const completeData = await completeRes.json();
+          if (completeData.success) {
+            alert("Payment confirmed and listing published successfully!");
             document.getElementById('add-listing-btn').classList.add('hidden');
             document.getElementById('listing-form').classList.remove('hidden');
           } else {
-            alert("Completion failed");
+            alert("Completion failed: " + completeData.error);
           }
         },
         onCancel: () => alert("Payment cancelled"),
