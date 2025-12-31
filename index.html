@@ -18,12 +18,12 @@
     #status { text-align: center; font-size: 18px; margin: 20px 0; }
     .images-preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
     .images-preview img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-    #listings-section { margin-top: 40px; }
-    .listing-item { background: white; padding: 20px; margin: 15px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .listing-item h3 { margin: 0 0 10px 0; color: #6B4CE6; }
-    .listing-item p { margin: 5px 0; color: #555; }
-    .listing-images { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .listing-images img { width: 150px; height: 150px; object-fit: cover; border-radius: 8px; }
+    #listings-section { margin-top: 30px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .listing-item { border-bottom: 1px solid #eee; padding: 15px 0; }
+    .listing-item h3 { margin: 0; color: #6B4CE6; }
+    .listing-item p { margin: 5px 0; }
+    .listing-item .listing-images { display: flex; gap: 10px; overflow-x: auto; }
+    .listing-item .listing-images img { width: 150px; height: auto; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -88,12 +88,9 @@
     </div>
   </div>
 
-  <!-- قسم عرض الإعلانات -->
-  <div id="listings-section" class="card hidden">
+  <div id="listings-section" class="hidden">
     <h2>Listings in Your Country</h2>
-    <div id="listings-list">
-      <p>Loading listings...</p>
-    </div>
+    <div id="listings-list"></div>
   </div>
 
   <script>
@@ -102,11 +99,10 @@
     Pi.init({ version: "2.0", sandbox: false });
 
     let currentUser = null;
+    let currentCountry = '';
 
-    // التعامل مع الدفعات المعلقة
     function onIncompletePaymentFound(payment) {
-      alert("You have a pending payment. Completing it now...");
-      // يمكن إضافة تأكيد تلقائي هنا إذا لزم
+      console.log("Pending payment found, handling...");
     }
 
     document.getElementById('login-btn').onclick = async () => {
@@ -115,8 +111,8 @@
         const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
         currentUser = auth.user;
 
-        const country = prompt("Enter your country (e.g., Algeria, Egypt, Saudi Arabia):");
-        if (!country) return alert("Country is required!");
+        currentCountry = prompt("Enter your country (e.g., Algeria, Egypt, Saudi Arabia):");
+        if (!currentCountry) return alert("Country is required!");
 
         const registerRes = await fetch(`${BACKEND_URL}/api/register-user`, {
           method: 'POST',
@@ -124,19 +120,18 @@
           body: JSON.stringify({
             piUid: currentUser.uid,
             piUsername: currentUser.username,
-            country: country.trim()
+            country: currentCountry.trim()
           })
         });
 
-        const data = await registerRes.json();
-        if (!data.success) throw new Error("Failed to register user");
+        if (!registerRes.ok) throw new Error("Failed to register user");
 
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
         document.getElementById('listings-section').classList.remove('hidden');
         document.getElementById('status').innerHTML = `Welcome ${currentUser.username}!`;
 
-        loadListings(country.trim());
+        loadListings(currentCountry);
 
       } catch (err) {
         alert("Login error: " + err.message);
@@ -144,56 +139,6 @@
       }
     };
 
-    // تحميل وعرض الإعلانات
-    async function loadListings(country) {
-      const listDiv = document.getElementById('listings-list');
-      listDiv.innerHTML = '<p>Loading listings...</p>';
-
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/get-listings?country=${encodeURIComponent(country)}`);
-        const data = await res.json();
-
-        if (data.listings.length === 0) {
-          listDiv.innerHTML = '<p>No listings available in your country yet. Be the first to add one!</p>';
-          return;
-        }
-
-        listDiv.innerHTML = '';
-        data.listings.forEach(listing => {
-          const item = document.createElement('div');
-          item.classList.add('listing-item');
-
-          let imagesHtml = '';
-          if (listing.images && listing.images.length > 0) {
-            imagesHtml = '<div class="listing-images">';
-            listing.images.forEach(img => {
-              imagesHtml += `<img src="${img}" alt="Vehicle image">`;
-            });
-            imagesHtml += '</div>';
-          }
-
-          item.innerHTML = `
-            <h3>${listing.title}</h3>
-            <p><strong>Price:</strong> ${listing.priceInPi} Pi</p>
-            <p><strong>Category:</strong> ${listing.category.toUpperCase()}</p>
-            <p><strong>Make:</strong> ${listing.make || 'N/A'}</p>
-            <p><strong>Model:</strong> ${listing.model || 'N/A'}</p>
-            <p><strong>Year:</strong> ${listing.year || 'N/A'}</p>
-            <p><strong>Mileage:</strong> ${listing.mileage ? listing.mileage + ' km' : 'N/A'}</p>
-            <p><strong>Region:</strong> ${listing.region}</p>
-            <p><strong>Phone:</strong> ${listing.phoneNumber}</p>
-            <p><strong>Description:</strong> ${listing.description}</p>
-            ${imagesHtml}
-          `;
-          listDiv.appendChild(item);
-        });
-      } catch (err) {
-        listDiv.innerHTML = '<p>Error loading listings. Try again later.</p>';
-        console.error(err);
-      }
-    }
-
-    // معاينة الصور
     document.getElementById('images').onchange = (e) => {
       const preview = document.getElementById('preview');
       preview.innerHTML = '';
@@ -210,7 +155,6 @@
       }
     };
 
-    // دفع 0.5 Pi لإضافة إعلان
     document.getElementById('add-listing-btn').onclick = async () => {
       if (!currentUser) return alert("Please login first");
 
@@ -253,57 +197,108 @@
       Pi.createPayment(payment, callbacks);
     };
 
-    // نشر الإعلان
     document.getElementById('submit-listing-btn').onclick = async () => {
-      const title = document.getElementById('title').value.trim();
-      const description = document.getElementById('description').value.trim();
-      const priceInPi = parseFloat(document.getElementById('priceInPi').value);
-      const category = document.getElementById('category').value;
-      const make = document.getElementById('make').value.trim();
-      const model = document.getElementById('model').value.trim();
-      const year = document.getElementById('year').value;
-      const mileage = document.getElementById('mileage').value;
-      const region = document.getElementById('region').value.trim();
-      const phoneNumber = document.getElementById('phoneNumber').value.trim();
-      const imageFiles = document.getElementById('images').files;
+      try {
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const priceInPi = parseFloat(document.getElementById('priceInPi').value);
+        const category = document.getElementById('category').value;
+        const make = document.getElementById('make').value.trim();
+        const model = document.getElementById('model').value.trim();
+        const year = parseInt(document.getElementById('year').value) || 0;
+        const mileage = parseInt(document.getElementById('mileage').value) || 0;
+        const region = document.getElementById('region').value.trim();
+        const phoneNumber = document.getElementById('phoneNumber').value.trim();
+        const imageFiles = document.getElementById('images').files;
 
-      if (!title || !description || isNaN(priceInPi) || !category || !region || !phoneNumber) {
-        return alert("Please fill all required fields (*)");
-      }
+        if (!title || !description || isNaN(priceInPi) || !category || !region || !phoneNumber) {
+          return alert("Please fill all required fields (*)");
+        }
 
-      if (imageFiles.length > 6) return alert("Maximum 6 images");
+        if (imageFiles.length > 6) return alert("Maximum 6 images");
 
-      const images = [];
-      for (let file of imageFiles) {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        images.push(await new Promise(resolve => {
-          reader.onload = () => resolve(reader.result);
-        }));
-      }
+        const images = [];
+        for (let file of imageFiles) {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          images.push(await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+          }));
+        }
 
-      const res = await fetch(`${BACKEND_URL}/api/complete-listing`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          piUid: currentUser.uid,
-          title, description, priceInPi, category, make, model, year, mileage, region, images, phoneNumber
-        })
-      });
+        const res = await fetch(`${BACKEND_URL}/api/complete-listing`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            piUid: currentUser.uid,
+            title, description, priceInPi, category, make, model, year, mileage, region, images, phoneNumber
+          })
+        });
 
-      const data = await res.json();
-      if (data.success) {
-        alert("Listing published successfully!");
-        document.getElementById('listing-form').classList.add('hidden');
-        document.getElementById('add-listing-btn').classList.remove('hidden');
-        // إعادة تحميل الإعلانات ليظهر الجديد فورًا
-        const userRes = await fetch(`${BACKEND_URL}/api/get-user?piUid=${currentUser.uid}`);
-        const userData = await userRes.json();
-        loadListings(userData.user.country);
-      } else {
-        alert("Error: " + data.error);
+        if (!res.ok) throw new Error("Failed to publish listing");
+
+        const data = await res.json();
+        if (data.success) {
+          alert("Listing published successfully!");
+          document.getElementById('listing-form').classList.add('hidden');
+          document.getElementById('add-listing-btn').classList.remove('hidden');
+          loadListings(currentCountry);
+        } else {
+          alert("Error: " + data.error);
+        }
+      } catch (err) {
+        alert("Publish error: " + err.message);
+        console.error(err);
       }
     };
+
+    async function loadListings(country) {
+      const listDiv = document.getElementById('listings-list');
+      listDiv.innerHTML = '<p>Loading listings...</p>';
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/get-listings?country=${encodeURIComponent(country)}`);
+        if (!res.ok) throw new Error("Failed to load listings");
+
+        const data = await res.json();
+
+        listDiv.innerHTML = '';
+        if (data.listings.length === 0) {
+          listDiv.innerHTML = '<p>No listings available in your country yet.</p>';
+          return;
+        }
+
+        data.listings.forEach(listing => {
+          const item = document.createElement('div');
+          item.classList.add('listing-item');
+          item.innerHTML = `
+            <h3>${listing.title}</h3>
+            <p>Price: ${listing.priceInPi} Pi</p>
+            <p>Category: ${listing.category}</p>
+            <p>Make: ${listing.make || 'N/A'}</p>
+            <p>Model: ${listing.model || 'N/A'}</p>
+            <p>Year: ${listing.year || 'N/A'}</p>
+            <p>Mileage: ${listing.mileage || 'N/A'} km</p>
+            <p>Region: ${listing.region}</p>
+            <p>Phone: ${listing.phoneNumber}</p>
+            <p>Description: ${listing.description}</p>
+          `;
+          if (listing.images && listing.images.length > 0) {
+            let imagesHtml = '<div class="listing-images">';
+            listing.images.forEach(img => {
+              imagesHtml += `<img src="${img}" alt="Vehicle image">`;
+            });
+            imagesHtml += '</div>';
+            item.innerHTML += imagesHtml;
+          }
+          listDiv.appendChild(item);
+        });
+      } catch (err) {
+        listDiv.innerHTML = '<p>Error loading listings: ' + err.message + '. Try again later.</p>';
+        console.error(err);
+      }
+    }
+
   </script>
 </body>
 </html>
