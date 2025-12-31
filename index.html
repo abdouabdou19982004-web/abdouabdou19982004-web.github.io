@@ -24,7 +24,7 @@
   <div class="card">
     <h1>🚗 CexPi</h1>
     <p style="text-align:center;">Used Cars, Trucks & Motorcycles Marketplace</p>
-    <p style="text-align:center;">Free access • Pay 0.5 Pi (real) to publish one listing</p>
+    <p style="text-align:center;">Free access • Pay 0.5 Pi to publish one listing</p>
 
     <div id="login-section">
       <button id="login-btn" class="btn-primary">Login with Pi Network</button>
@@ -32,7 +32,7 @@
 
     <div id="app-section" class="hidden">
       <div id="status"></div>
-      <button id="add-listing-btn" class="btn-primary">Add New Listing (Pay 0.5 Real Pi)</button>
+      <button id="add-listing-btn" class="btn-primary">Add New Listing (Pay 0.5 Pi)</button>
 
       <div id="listing-form" class="hidden">
         <h2>Add Your Vehicle Listing</h2>
@@ -83,11 +83,10 @@
   </div>
 
   <script>
-    // رابط الـ Backend أونلاين
+    // رابط الـ Backend الحقيقي أونلاين
     const BACKEND_URL = 'https://cexpi-backend.onrender.com';
 
-    // خارج Sandbox تمامًا - دفع حقيقي بـ Pi Mainnet
-    Pi.init({ version: "2.0", sandbox: false });
+    Pi.init({ version: "2.0", sandbox: false }); // sandbox للتجربة، غيّر إلى false في Mainnet لاحقًا
 
     let currentUser = null;
 
@@ -115,7 +114,7 @@
 
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
-        document.getElementById('status').innerHTML = `Welcome ${currentUser.username}! Pay 0.5 real Pi to add a listing.`;
+        document.getElementById('status').innerHTML = `Welcome ${currentUser.username}! Browse freely or add a listing for 0.5 Pi.`;
 
       } catch (err) {
         alert("Login error: " + err.message);
@@ -140,7 +139,7 @@
       }
     };
 
-    // دفع 0.5 Pi حقيقي لإضافة إعلان
+    // زر إضافة إعلان → دفع 0.5 Pi
     document.getElementById('add-listing-btn').onclick = async () => {
       if (!currentUser) return alert("Please login first");
 
@@ -167,7 +166,7 @@
           });
         },
         onReadyForServerCompletion: () => {
-          alert("Payment successful with real Pi! Now fill in your listing details.");
+          alert("Payment successful! Now fill in your listing details.");
           document.getElementById('add-listing-btn').classList.add('hidden');
           document.getElementById('listing-form').classList.remove('hidden');
         },
@@ -218,7 +217,7 @@
 
       const data = await res.json();
       if (data.success) {
-        alert("Listing published successfully with real Pi payment!");
+        alert("Listing published successfully! It is now visible in your country and category.");
         location.reload();
       } else {
         alert("Error: " + data.error);
