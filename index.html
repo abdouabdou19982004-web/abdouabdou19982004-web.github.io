@@ -85,14 +85,32 @@
   <script>
     const BACKEND_URL = 'https://cexpi-backend.onrender.com';
 
-    Pi.init({ version: "2.0", sandbox: false }); // Mainnet - دفع حقيقي
+    Pi.init({ version: "2.0", sandbox: false });
 
     let currentUser = null;
+
+    function onIncompletePaymentFound(payment) {
+      // هذه الدالة تتعامل مع الدفعات المعلقة تلقائيًا
+      fetch(`${BACKEND_URL}/api/complete-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: payment.identifier, txid: payment.transaction.txid, piUid: currentUser.uid })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert("Pending payment completed automatically!");
+            document.getElementById('add-listing-btn').classList.add('hidden');
+            document.getElementById('listing-form').classList.remove('hidden');
+          } else {
+            alert("Pending payment error: " + data.error);
+          }
+        });
+    }
 
     document.getElementById('login-btn').onclick = async () => {
       try {
         const scopes = ['username', 'payments'];
-        const auth = await Pi.authenticate(scopes);
+        const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
         currentUser = auth.user;
 
         const country = prompt("Enter your country (e.g., Algeria, Egypt, Saudi Arabia):");
@@ -156,7 +174,6 @@
 
       const callbacks = {
         onReadyForServerApproval: async (paymentId) => {
-          // التطبيق يؤكد الدفع تلقائيًا من الـ Backend
           await fetch(`${BACKEND_URL}/api/approve-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -164,21 +181,14 @@
           });
         },
         onReadyForServerCompletion: async (paymentId, txid) => {
-          // التطبيق يؤكد إكمال الدفع تلقائيًا
-          const completeRes = await fetch(`${BACKEND_URL}/api/complete-payment`, {
+          await fetch(`${BACKEND_URL}/api/complete-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentId, txid, piUid: currentUser.uid })
           });
-
-          const completeData = await completeRes.json();
-          if (completeData.success) {
-            alert("Payment confirmed automatically! Now add your listing.");
-            document.getElementById('add-listing-btn').classList.add('hidden');
-            document.getElementById('listing-form').classList.remove('hidden');
-          } else {
-            alert("Payment error: " + completeData.error);
-          }
+          alert("Payment confirmed! Fill the listing form.");
+          document.getElementById('add-listing-btn').classList.add('hidden');
+          document.getElementById('listing-form').classList.remove('hidden');
         },
         onCancel: () => alert("Payment cancelled"),
         onError: (error) => alert("Payment error: " + error.message)
