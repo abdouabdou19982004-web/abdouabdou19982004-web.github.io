@@ -137,10 +137,30 @@
     let currentUser = null;
     let currentCountry = '';
 
+    // دالة للتعامل مع الدفعات المعلقة تلقائيًا (تحل المشكلة اللي في الصور)
+    function onIncompletePaymentFound(payment) {
+      // نؤكد الدفع المعلق تلقائيًا
+      fetch(`${BACKEND_URL}/api/complete-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: payment.identifier,
+          txid: payment.transaction && payment.transaction.txid ? payment.transaction.txid : null,
+          piUid: currentUser.uid
+        })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          alert("Pending payment completed automatically!");
+          document.getElementById('add-listing-btn').classList.add('hidden');
+          document.getElementById('listing-form').classList.remove('hidden');
+        }
+      });
+    }
+
     document.getElementById('login-btn').onclick = async () => {
       try {
         const scopes = ['username', 'payments'];
-        const auth = await Pi.authenticate(scopes);
+        const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
         currentUser = auth.user;
 
         document.getElementById('login-section').classList.add('hidden');
@@ -272,7 +292,7 @@
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/get-listings?country=${encodeURIComponent(country)}`);
-        if (!res.ok) throw new Error("Failed to load");
+        if (!res.ok) throw new Error("Failed to load listings");
 
         const data = await res.json();
         listDiv.innerHTML = '';
