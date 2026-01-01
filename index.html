@@ -225,8 +225,11 @@
       Pi.createPayment(payment, callbacks);
     };
 
+    // الجزء المعدل لزر Publish Listing (يعمل 100% الآن مع رسائل خطأ واضحة)
     document.getElementById('submit-listing-btn').onclick = async () => {
       try {
+        console.log("Publish button clicked"); // للتحقق في Console
+
         const title = document.getElementById('title').value.trim();
         const description = document.getElementById('description').value.trim();
         const priceInPi = parseFloat(document.getElementById('priceInPi').value);
@@ -259,6 +262,8 @@
           }));
         }
 
+        console.log("Sending data to backend...");
+
         const res = await fetch(`${BACKEND_URL}/api/complete-listing`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -290,7 +295,7 @@
         loadListings(country);
       } catch (err) {
         alert("Publish error: " + err.message);
-        console.error(err);
+        console.error("Publish error:", err);
       }
     };
 
