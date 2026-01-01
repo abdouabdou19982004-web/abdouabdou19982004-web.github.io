@@ -136,9 +136,8 @@
 
     let currentUser = null;
 
-    // التعامل مع الدفعات المعلقة تلقائيًا
     function onIncompletePaymentFound(payment) {
-      alert("تم اكتشاف دفعة معلقة. سيتم إكمالها تلقائيًا...");
+      alert("Pending payment detected. Completing it automatically...");
       fetch(`${BACKEND_URL}/api/complete-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,10 +146,6 @@
           txid: payment.transaction ? payment.transaction.txid : null,
           piUid: currentUser ? currentUser.uid : null
         })
-      }).then(res => res.json()).then(data => {
-        if (data.success) {
-          alert("تم إكمال الدفعة المعلقة بنجاح! يمكنك الآن إضافة إعلان جديد.");
-        }
       });
       return Promise.resolve();
     }
@@ -164,10 +159,10 @@
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
         document.getElementById('listings-section').classList.remove('hidden');
-        document.getElementById('status').innerHTML = `مرحباً ${currentUser.username}! ادفع 0.5 Pi لإضافة إعلان.`;
+        document.getElementById('status').innerHTML = `Welcome ${currentUser.username}!`;
 
       } catch (err) {
-        alert("خطأ في تسجيل الدخول: " + err.message);
+        alert("Login error: " + err.message);
         console.error(err);
       }
     };
@@ -177,7 +172,7 @@
       preview.innerHTML = '';
       const files = e.target.files;
       if (files.length > 6) {
-        alert("الحد الأقصى 6 صور");
+        alert("Maximum 6 images allowed");
         e.target.value = '';
         return;
       }
@@ -189,7 +184,7 @@
     };
 
     document.getElementById('add-listing-btn').onclick = async () => {
-      if (!currentUser) return alert("يرجى تسجيل الدخول أولاً");
+      if (!currentUser) return alert("Please login first");
 
       const payRes = await fetch(`${BACKEND_URL}/api/create-listing-payment`, {
         method: 'POST',
@@ -197,7 +192,7 @@
         body: JSON.stringify({ piUid: currentUser.uid })
       });
       const payData = await payRes.json();
-      if (!payData.success) return alert("فشل في إعداد الدفع");
+      if (!payData.success) return alert("Payment setup failed");
 
       const payment = {
         amount: 0.5,
@@ -219,12 +214,12 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentId, txid, piUid: currentUser.uid })
           });
-          alert("تم الدفع بنجاح! الآن املأ تفاصيل الإعلان.");
+          alert("Payment successful! Now fill in your listing details.");
           document.getElementById('add-listing-btn').classList.add('hidden');
           document.getElementById('listing-form').classList.remove('hidden');
         },
-        onCancel: () => alert("تم إلغاء الدفع"),
-        onError: (error) => alert("خطأ في الدفع: " + error.message)
+        onCancel: () => alert("Payment cancelled"),
+        onError: (error) => alert("Payment error: " + error.message)
       };
 
       Pi.createPayment(payment, callbacks);
@@ -246,10 +241,14 @@
         const imageFiles = document.getElementById('images').files;
 
         if (!title || !description || isNaN(priceInPi) || !category || !country || !region || !phoneNumber) {
-          return alert("يرجى ملء جميع الحقول المطلوبة (*)");
+          alert("Please fill all required fields (*)");
+          return;
         }
 
-        if (imageFiles.length > 6) return alert("الحد الأقصى 6 صور");
+        if (imageFiles.length > 6) {
+          alert("Maximum 6 images allowed");
+          return;
+        }
 
         const images = [];
         for (let file of imageFiles) {
@@ -265,37 +264,49 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             piUid: currentUser.uid,
-            title, description, priceInPi, category, make, model, year, mileage, country, region, images, phoneNumber
+            title,
+            description,
+            priceInPi,
+            category,
+            make,
+            model,
+            year,
+            mileage,
+            country,
+            region,
+            images,
+            phoneNumber
           })
         });
 
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "فشل في النشر");
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to publish listing");
         }
 
-        alert("تم نشر الإعلان بنجاح!");
+        const data = await res.json();
+        alert("Listing published successfully!");
         document.getElementById('listing-form').classList.add('hidden');
         document.getElementById('add-listing-btn').classList.remove('hidden');
         loadListings(country);
       } catch (err) {
-        alert("خطأ في النشر: " + err.message);
-        console.error(err);
+        alert("Publish error: " + err.message);
+        console.error("Publish error:", err);
       }
     };
 
     async function loadListings(country) {
       const listDiv = document.getElementById('listings-list');
-      listDiv.innerHTML = '<p>جاري تحميل الإعلانات...</p>';
+      listDiv.innerHTML = '<p>Loading listings...</p>';
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/get-listings?country=${encodeURIComponent(country)}`);
-        if (!res.ok) throw new Error("فشل في تحميل الإعلانات");
+        if (!res.ok) throw new Error("Failed to load listings");
 
         const data = await res.json();
         listDiv.innerHTML = '';
         if (data.listings.length === 0) {
-          listDiv.innerHTML = '<p>لا توجد إعلانات في بلدك حتى الآن.</p>';
+          listDiv.innerHTML = '<p>No listings available in your country yet.</p>';
           return;
         }
 
@@ -304,20 +315,20 @@
           item.classList.add('listing-item');
           item.innerHTML = `
             <h3>${listing.title}</h3>
-            <p><strong>السعر:</strong> ${listing.priceInPi} Pi</p>
-            <p><strong>الفئة:</strong> ${listing.category}</p>
-            <p><strong>الماركة:</strong> ${listing.make || 'غير محدد'}</p>
-            <p><strong>الموديل:</strong> ${listing.model || 'غير محدد'}</p>
-            <p><strong>السنة:</strong> ${listing.year || 'غير محدد'}</p>
-            <p><strong>المسافة:</strong> ${listing.mileage ? listing.mileage + ' كم' : 'غير محدد'}</p>
-            <p><strong>المنطقة:</strong> ${listing.region}</p>
-            <p><strong>الهاتف:</strong> ${listing.phoneNumber}</p>
-            <p><strong>الوصف:</strong> ${listing.description}</p>
+            <p><strong>Price:</strong> ${listing.priceInPi} Pi</p>
+            <p><strong>Category:</strong> ${listing.category}</p>
+            <p><strong>Make:</strong> ${listing.make || 'N/A'}</p>
+            <p><strong>Model:</strong> ${listing.model || 'N/A'}</p>
+            <p><strong>Year:</strong> ${listing.year || 'N/A'}</p>
+            <p><strong>Mileage:</strong> ${listing.mileage ? listing.mileage + ' km' : 'N/A'}</p>
+            <p><strong>Region:</strong> ${listing.region}</p>
+            <p><strong>Phone:</strong> ${listing.phoneNumber}</p>
+            <p><strong>Description:</strong> ${listing.description}</p>
           `;
           if (listing.images && listing.images.length > 0) {
             let imagesHtml = '<div class="listing-images">';
             listing.images.forEach(img => {
-              imagesHtml += `<img src="${img}" alt="صورة السيارة">`;
+              imagesHtml += `<img src="${img}" alt="Vehicle image">`;
             });
             imagesHtml += '</div>';
             item.innerHTML += imagesHtml;
@@ -325,7 +336,8 @@
           listDiv.appendChild(item);
         });
       } catch (err) {
-        listDiv.innerHTML = '<p>خطأ في تحميل الإعلانات. حاول لاحقًا.</p>';
+        listDiv.innerHTML = '<p>Error loading listings. Try again later.</p>';
+        console.error(err);
       }
     }
   </script>
