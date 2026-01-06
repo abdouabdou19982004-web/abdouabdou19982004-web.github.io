@@ -319,7 +319,8 @@
 
   <script>
     const BACKEND_URL = 'https://cexpi-backend.onrender.com';
-
+let piToken = null;
+    
     Pi.init({ version: "2.0", sandbox: false });
 
     let currentUser = null;
@@ -343,6 +344,7 @@
       try {
         const scopes = ['username', 'payments'];
         const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
+        piToken = auth.accessToken;
         currentUser = auth.user;
 
         document.getElementById('login-section').classList.add('hidden');
@@ -394,7 +396,11 @@
         onReadyForServerApproval: async (paymentId) => {
           await fetch(`${BACKEND_URL}/api/approve-payment`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${piToken}`
+},
+
             body: JSON.stringify({ paymentId })
           });
         },
@@ -451,7 +457,11 @@
 
         const res = await fetch(`${BACKEND_URL}/api/complete-listing`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${piToken}`
+},
+
           body: JSON.stringify({
             piUid: currentUser.uid,
             title,
@@ -576,7 +586,10 @@ function applyFilters() {
             if (confirm("Are you sure you want to delete this listing?")) {
               const delRes = await fetch(`${BACKEND_URL}/api/delete-listing`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+               headers: {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${piToken}`
+},
                 body: JSON.stringify({ listingId: listing._id, piUid: currentUser.uid })
               });
               if (delRes.ok) {
@@ -619,6 +632,7 @@ function populateCountryFilter() {
   </script>
 </body>
 </html>
+
 
 
 
