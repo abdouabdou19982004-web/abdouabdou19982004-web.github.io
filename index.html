@@ -496,8 +496,13 @@
 
         const data = await res.json();
         
-        allListings = data.listings || [];
+       allListings = data.listings || [];
+
+// ⬅️ هذا السطر هو الحل
+populateCountryFilter();
+
 applyFilters();
+
       } catch (err) {
         listDiv.innerHTML = `<p style="color:red;">Error loading listings: ${err.message}</p>`;
         console.error("Load listings error:", err);
@@ -614,6 +619,7 @@ function populateCountryFilter() {
   </script>
 </body>
 </html>
+
 
 
 
