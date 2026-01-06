@@ -497,12 +497,35 @@
         const data = await res.json();
         
         allListings = data.listings || [];
-        displayListings(allListings);
+applyFilters();
       } catch (err) {
         listDiv.innerHTML = `<p style="color:red;">Error loading listings: ${err.message}</p>`;
         console.error("Load listings error:", err);
       }
     }
+function applyFilters() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const selectedCountry = document.getElementById('countryFilter').value;
+
+  const filtered = allListings.filter(listing => {
+
+    // فلتر البحث
+    const matchesSearch =
+      listing.title?.toLowerCase().includes(searchTerm) ||
+      listing.make?.toLowerCase().includes(searchTerm) ||
+      listing.model?.toLowerCase().includes(searchTerm) ||
+      listing.region?.toLowerCase().includes(searchTerm) ||
+      listing.country?.toLowerCase().includes(searchTerm);
+
+    // فلتر الدولة
+    const matchesCountry =
+      !selectedCountry || listing.country === selectedCountry;
+
+    return matchesSearch && matchesCountry;
+  });
+
+  displayListings(filtered);
+}
 
     function displayListings(listings) {
       const listDiv = document.getElementById('listings-list');
@@ -566,18 +589,14 @@
       });
     }
 
-    document.getElementById('searchInput').oninput = (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      const filtered = allListings.filter(listing =>
-        listing.title.toLowerCase().includes(searchTerm) ||
-        (listing.make && listing.make.toLowerCase().includes(searchTerm)) ||
-        (listing.model && listing.model.toLowerCase().includes(searchTerm)) ||
-        (listing.region && listing.region.toLowerCase().includes(searchTerm)) ||
-        (listing.country && listing.country.toLowerCase().includes(searchTerm))
-      );
-      displayListings(filtered);
-    };
+    document.getElementById('searchInput')
+  .addEventListener('input', applyFilters);
+
+document.getElementById('countryFilter')
+  .addEventListener('change', applyFilters);
+
   </script>
 </body>
 </html>
+
 
