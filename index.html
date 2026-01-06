@@ -293,8 +293,22 @@
   </div>
 
   <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="Search by title, make, model, region or country...">
-  </div>
+
+  <!-- فلتر الدولة -->
+  <select id="countryFilter" class="search-input">
+    <option value="">🌍 All Countries</option>
+    <option value="Algeria">Algeria</option>
+    <option value="Morocco">Morocco</option>
+    <option value="Tunisia">Tunisia</option>
+    <option value="France">France</option>
+    <option value="United States of America">United States</option>
+  </select>
+
+  <!-- البحث -->
+  <input type="text" id="searchInput" class="search-input"
+         placeholder="Search by title, make, model, region or country...">
+
+</div>
 
   <div id="listings-section" class="card hidden">
     <h2>All Listings</h2>
@@ -566,3 +580,4 @@
   </script>
 </body>
 </html>
+
