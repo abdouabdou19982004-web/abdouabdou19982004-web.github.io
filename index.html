@@ -594,9 +594,26 @@ function applyFilters() {
 
 document.getElementById('countryFilter')
   .addEventListener('change', applyFilters);
+function populateCountryFilter() {
+  const countrySelect = document.getElementById('country');
+  const filterSelect = document.getElementById('countryFilter');
+
+  // مسح الدول القديمة (نترك All Countries)
+  filterSelect.innerHTML = '<option value="">🌍 All Countries</option>';
+
+  for (let option of countrySelect.options) {
+    if (option.value) {
+      const newOption = document.createElement('option');
+      newOption.value = option.value;
+      newOption.textContent = option.textContent;
+      filterSelect.appendChild(newOption);
+    }
+  }
+}
 
   </script>
 </body>
 </html>
+
 
 
