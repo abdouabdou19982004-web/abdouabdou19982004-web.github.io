@@ -32,7 +32,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>🚗🚚🚴‍♂️ CexPi</h1>
+    <h1>🚗🚚CexPi🚴‍♂️</h1>
     <p style="text-align:center;">Used Cars, Trucks & Motorcycles Marketplace</p>
     <p style="text-align:center;">Free access • Pay 0.5 Pi to publish one listing</p>
 
@@ -285,6 +285,11 @@
           <label>Images (up to 6 - optional)</label>
           <input type="file" id="images" multiple accept="image/*">
           <div class="images-preview" id="preview"></div>
+<label style="margin-top:15px;">
+  <input type="checkbox" id="termsCheckbox" required>
+  I confirm that I am solely responsible for the content of this listing. 
+  <a href="terms.html" target="_blank">Read Terms & Disclaimer</a>
+</label>
 
           <button type="button" id="submit-listing-btn" class="btn-primary">Publish Listing</button>
         </form>
@@ -422,6 +427,11 @@ let piToken = null;
     };
 
     document.getElementById('submit-listing-btn').onclick = async () => {
+     if (!document.getElementById('termsCheckbox').checked) {
+  alert("You must accept the disclaimer to publish your listing.");
+  return;
+}
+
       try {
         const title = document.getElementById('title').value.trim();
         const description = document.getElementById('description').value.trim();
@@ -632,6 +642,7 @@ function populateCountryFilter() {
   </script>
 </body>
 </html>
+
 
 
 
