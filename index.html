@@ -37,8 +37,21 @@
     <p style="text-align:center;">Free access • Pay 0.5 Pi to publish one listing</p>
 
     <div id="login-section">
-      <button id="login-btn" class="btn-primary">Login with Pi Network</button>
-    </div>
+  
+  <label style="display:block; margin-bottom:15px; font-size:14px;">
+    <input type="checkbox" id="acceptPolicies">
+    I agree to the 
+    <a href="terms_of_service.html" target="_blank">Terms of Service</a> 
+    and 
+    <a href="privacy_policy.html" target="_blank">Privacy Policy</a>
+  </label>
+
+  <button id="login-btn" class="btn-primary">
+    Login with Pi Network
+  </button>
+
+</div>
+
 
     <div id="app-section" class="hidden">
       <div id="status"></div>
@@ -536,6 +549,10 @@ let piToken = null;
     }
 
     document.getElementById('login-btn').onclick = async () => {
+     if (!document.getElementById('acceptPolicies').checked) {
+    alert("You must accept the Terms of Service and Privacy Policy to continue.");
+    return;
+  }
       try {
         const scopes = ['username', 'payments'];
         const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
@@ -832,6 +849,7 @@ function populateCountryFilter() {
   </script>
 </body>
 </html>
+
 
 
 
