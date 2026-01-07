@@ -55,6 +55,10 @@
 
     <div id="app-section" class="hidden">
       <div id="status"></div>
+      <button id="logout-btn" class="btn-delete" style="width:100%;">
+  Logout
+</button>
+
       <button id="add-listing-btn" class="btn-primary">Add New Listing (Pay 0.5 Pi)</button>
 
       <div id="listing-form" class="hidden">
@@ -845,10 +849,32 @@ function populateCountryFilter() {
     }
   }
 }
+document.getElementById('logout-btn').onclick = () => {
+  // حذف بيانات الجلسة
+  currentUser = null;
+  piToken = null;
+
+  // إخفاء التطبيق
+  document.getElementById('app-section').classList.add('hidden');
+  document.getElementById('listings-section').classList.add('hidden');
+
+  // إظهار صفحة تسجيل الدخول
+  document.getElementById('login-section').classList.remove('hidden');
+
+  // إعادة الزر والنموذج لحالتهم الأصلية
+  document.getElementById('add-listing-btn').classList.remove('hidden');
+  document.getElementById('listing-form').classList.add('hidden');
+
+  // مسح الرسالة
+  document.getElementById('status').innerHTML = '';
+
+  alert("You have been logged out.");
+};
 
   </script>
 </body>
 </html>
+
 
 
 
