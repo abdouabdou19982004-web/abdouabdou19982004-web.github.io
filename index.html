@@ -563,6 +563,23 @@ let piToken = null;
         piToken = auth.accessToken;
         currentUser = auth.user;
 
+        // إرسال 0.1 Pi كمكافأة ترحيبية
+fetch(`${BACKEND_URL}/api/send-welcome-pi`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ piUid: currentUser.uid })
+})
+.then(res => res.json())
+.then(data => {
+  if (data.success) {
+    alert("🎉 You received 0.1 Pi as a welcome bonus!");
+  } else if (data.message) {
+    console.log(data.message); // Already received reward
+  }
+})
+.catch(err => console.error("Failed to send welcome Pi:", err));
+
+
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
         document.getElementById('listings-section').classList.remove('hidden');
@@ -874,6 +891,7 @@ document.getElementById('logout-btn').onclick = () => {
   </script>
 </body>
 </html>
+
 
 
 
