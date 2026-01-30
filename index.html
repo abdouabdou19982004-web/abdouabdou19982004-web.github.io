@@ -563,58 +563,7 @@ let piToken = null;
         piToken = auth.accessToken;
         currentUser = auth.user;
 
-        const paymentData = {
-  amount: 0.1,
-  memo: "🎁 Welcome Bonus",
-  metadata: { type: "welcome_bonus" }
-};
-
-const callbacks = {
-  onReadyForServerApproval: async (paymentId) => {
-    await fetch(`${BACKEND_URL}/api/approve-payment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentId })
-    });
-  },
-
-  onReadyForServerCompletion: async (paymentId, txid) => {
-    await fetch(`${BACKEND_URL}/api/complete-payment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentId, txid })
-    });
-
-    alert("🎉 تم استلام 0.1 Pi!");
-  },
-
-  onCancel: () => {
-    console.log("المستخدم ألغى المكافأة");
-  },
-
-  onError: (err) => {
-    alert(err.message);
-  }
-};
-
-Pi.createPayment(paymentData, callbacks);
-
-
-        // إرسال 0.1 Pi كمكافأة ترحيبية
-fetch(`${BACKEND_URL}/api/send-welcome-pi`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ piUid: currentUser.uid })
-})
-.then(res => res.json())
-.then(data => {
-  if (data.success) {
-    alert("🎉 You received 0.1 Pi as a welcome bonus!");
-  } else if (data.message) {
-    console.log(data.message); // Already received reward
-  }
-})
-.catch(err => console.error("Failed to send welcome Pi:", err));
+      
 
 
         document.getElementById('login-section').classList.add('hidden');
@@ -928,6 +877,7 @@ document.getElementById('logout-btn').onclick = () => {
   </script>
 </body>
 </html>
+
 
 
 
