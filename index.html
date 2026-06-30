@@ -59,6 +59,14 @@
   Logout
 </button>
 
+      
+      <div id="promo-section" style="background:#fff8e1; padding:15px; border-radius:10px; margin:15px 0; text-align:center; border:1px solid #ffd54f;">
+  <p id="promo-status" style="margin:0 0 10px 0; font-weight:bold;">Checking promo eligibility...</p>
+  <button id="claim-promo-btn" class="btn-primary" style="background:#ff9800; display:none;">
+    🎁 Claim 0.1 Pi (First 5 Users Only)
+  </button>
+</div>
+      
       <button id="add-listing-btn" class="btn-primary">Add New Listing (Pay 0.5 Pi)</button>
 
       <div id="listing-form" class="hidden">
@@ -538,6 +546,68 @@ let piToken = null;
     let currentUser = null;
     let allListings = [];
 
+    // ================= PROMO A2U CLAIM =================
+async function checkPromoStatus() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/promo-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ piUid: currentUser.uid })
+    });
+    const data = await res.json();
+    const statusEl = document.getElementById('promo-status');
+    const btn = document.getElementById('claim-promo-btn');
+
+    if (data.alreadyClaimed) {
+      statusEl.innerText = "✅ You already claimed your 0.1 Pi reward!";
+      btn.style.display = 'none';
+    } else if (data.isEligible) {
+      statusEl.innerText = `🎉 ${data.slotsLeft} slot(s) left! Be among the first 5 to claim 0.1 Pi.`;
+      btn.style.display = 'inline-block';
+    } else {
+      statusEl.innerText = "❌ Promo limit reached. No slots left.";
+      btn.style.display = 'none';
+    }
+  } catch (e) {
+    console.error("Promo status error:", e);
+  }
+}
+
+document.getElementById('claim-promo-btn').onclick = async () => {
+  const btn = document.getElementById('claim-promo-btn');
+  btn.disabled = true;
+  btn.innerText = "Processing...";
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/claim-promo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        piUid: currentUser.uid,
+        piUsername: currentUser.username,
+        accessToken: piToken
+      })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Error: " + (data.error || "Claim failed"));
+      btn.disabled = false;
+      btn.innerText = "🎁 Claim 0.1 Pi (First 5 Users Only)";
+      return;
+    }
+
+    alert(`🎉 Success! 0.1 Pi sent to your wallet.\nTXID: ${data.txid}`);
+    checkPromoStatus();
+
+  } catch (e) {
+    alert("Network error. Please try again.");
+    btn.disabled = false;
+    btn.innerText = "🎁 Claim 0.1 Pi (First 5 Users Only)";
+  }
+};
+
     function onIncompletePaymentFound(payment) {
       alert("Pending payment detected. Completing it automatically...");
       fetch(`${BACKEND_URL}/api/complete-payment`, {
@@ -572,11 +642,14 @@ let piToken = null;
         document.getElementById('status').innerHTML = `Welcome ${currentUser.username}!`;
 
         loadListings();
+        checkPromoStatus(); 
       } catch (err) {
         alert("Login error: " + err.message);
         console.error(err);
       }
     };
+
+    
 
     document.getElementById('images').onchange = (e) => {
       const preview = document.getElementById('preview');
