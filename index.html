@@ -540,11 +540,12 @@
   <script>
     const BACKEND_URL = 'https://cexpi-backend.onrender.com';
 let piToken = null;
-    
-    Pi.init({ version: "2.0", sandbox: false });
+let walletAddress = null;
 
-    let currentUser = null;
-    let allListings = [];
+Pi.init({ version: "2.0", sandbox: false });
+
+let currentUser = null;
+let allListings = [];
 
     // ================= PROMO A2U CLAIM =================
 async function checkPromoStatus() {
@@ -628,12 +629,12 @@ document.getElementById('claim-promo-btn').onclick = async () => {
     return;
   }
       try {
-        const scopes = ['username', 'payments'];
+        const scopes = ['username', 'payments', 'wallet_address'];
         const auth = await Pi.authenticate(scopes, onIncompletePaymentFound);
         piToken = auth.accessToken;
         currentUser = auth.user;
 
-      
+      walletAddress = auth.user.wallet_address;
 
 
         document.getElementById('login-section').classList.add('hidden');
